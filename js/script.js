@@ -5,6 +5,13 @@ const resetBtn = document.getElementById('reset');
 const svgPath = document.querySelector('.path');
 const totalLength = svgPath.getTotalLength();
 
+const HOOK_IMG = '../img/hook.png';
+const TUNA_IMG = '../img/tuna.png';
+
+let caught = false;
+let reelY = null;
+
+
 svgPath.style.strokeDasharray = totalLength;
 svgPath.style.strokeDashoffset = totalLength;
 // Path points
@@ -31,14 +38,23 @@ let progress = 0;
 let speed = 2; // pixels per frame
 let animating = false;
 let animationId = null;
+
 function moveHook() {
   if (!animating) return;
 
-  if (index >= path.length - 1) {
-    animating = false;
-    svgPath.style.strokeDashoffset = 0;
-    return;
-  }
+ if (index >= path.length - 1 && !caught) {
+  caught = true;
+hook.setAttribute('href', '../img/tuna.png');
+reelBack(); // move along path back
+
+
+  // start reeling upward from current Y
+  reelY = parseFloat(hook.getAttribute('y'));
+
+  requestAnimationFrame(reelUp);
+  return;
+}
+
 
   const hookSize = 20;
 
@@ -76,6 +92,46 @@ function moveHook() {
   animationId = requestAnimationFrame(moveHook);
 }
 
+function reelBack() {
+  if (index <= 0 && progress <= 0) {
+    animating = false;
+    return;
+  }
+
+  const hookSize = 20;
+  let remainingSpeed = speed * 1.5; // can adjust speed
+
+  while (remainingSpeed > 0 && (index > 0 || progress > 0)) {
+    const [x1, y1] = path[index];
+    const [x0, y0] = path[index - 1] || path[0];
+
+    const dx = x0 - x1;
+    const dy = y0 - y1;
+    const distance = Math.hypot(dx, dy);
+
+    const step = Math.min(remainingSpeed, distance - progress);
+    progress += step;
+    remainingSpeed -= step;
+
+    const t = progress / distance;
+    const newX = x1 + dx * t;
+    const newY = y1 + dy * t;
+
+    hook.setAttribute('x', Math.round(newX - hookSize / 2));
+    hook.setAttribute('y', Math.round(newY - hookSize / 2));
+
+    traveled -= step;
+    svgPath.style.strokeDashoffset = totalLength - Math.max(traveled, 0);
+
+    if (progress >= distance) {
+      progress = 0;
+      index--;
+    }
+  }
+
+  requestAnimationFrame(reelBack);
+}
+
 
 
 startBtn.addEventListener('click', () => {
@@ -90,6 +146,9 @@ startBtn.addEventListener('click', () => {
 
 resetBtn.addEventListener('click', () => {
   animating = false;
+  caught = false;
+hook.setAttribute('href', '../img/hook.png');
+
   if (animationId) cancelAnimationFrame(animationId);
 
   index = 0;
