@@ -31,62 +31,58 @@ let progress = 0;
 let speed = 2; // pixels per frame
 let animating = false;
 let animationId = null;
-
 function moveHook() {
- if (index >= path.length - 1) {
-  const [endX, endY] = path[path.length - 1];
+  if (!animating) return;
+
+  if (index >= path.length - 1) {
+    animating = false;
+    svgPath.style.strokeDashoffset = 0;
+    return;
+  }
+
   const hookSize = 20;
 
-  hook.setAttribute('x', endX - hookSize / 2);
-  hook.setAttribute('y', endY - hookSize / 2);
+  let remainingSpeed = speed;
 
-  svgPath.style.strokeDashoffset = 0; // fully drawn
-  animating = false;
-  return;
-}
+  while (remainingSpeed > 0 && index < path.length - 1) {
+    const [x1, y1] = path[index];
+    const [x2, y2] = path[index + 1];
 
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const distance = Math.hypot(dx, dy);
 
-  const [x1, y1] = path[index];
-  const [x2, y2] = path[index + 1];
+    const step = Math.min(remainingSpeed, distance - progress);
+    progress += step;
+    remainingSpeed -= step;
 
-  const dx = x2 - x1;
-  const dy = y2 - y1;
-  const distance = Math.sqrt(dx * dx + dy * dy);
+    const t = progress / distance;
 
-  progress += speed;
-  traveled += speed; // 👈 track total movement
+    const newX = x1 + dx * t;
+    const newY = y1 + dy * t;
 
-  if (progress >= distance) {
-    progress = 0;
-    index++;
+    hook.setAttribute('x', Math.round(newX - hookSize / 2));
+    hook.setAttribute('y', Math.round(newY - hookSize / 2));
+
+    traveled += step;
+    svgPath.style.strokeDashoffset = totalLength - Math.min(traveled, totalLength);
+
+    if (progress >= distance) {
+      progress = 0;
+      index++;
+    }
   }
-	
 
-  const t = progress / distance;
-  const newX = x1 + dx * t;
-  const newY = y1 + dy * t;
-
-
- const hookSize = 20;
-
-hook.setAttribute('x', newX - hookSize / 2);
-hook.setAttribute('y', newY - hookSize / 2);
- 
-
-
-
-  // 👇 reveal path based on hook distance
-  const draw = Math.min(traveled, totalLength);
-  svgPath.style.strokeDashoffset = totalLength - draw;
-
-  if (animating) animationId = requestAnimationFrame(moveHook);
+  animationId = requestAnimationFrame(moveHook);
 }
+
 
 
 startBtn.addEventListener('click', () => {
   if (!animating) {
     index = 0;
     progress = 0;
+	traveled = 0;
     animating = true;
     moveHook();
   }
@@ -142,3 +138,4 @@ settingsBtn.addEventListener('click', () => {
     }
   });
 });
+
