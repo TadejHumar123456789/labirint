@@ -19,6 +19,7 @@ body{
   background-image: url('../img/ribic.png');
   background-size: cover;
   z-index: 10;
+ 
 }
 .hook{
   width: 20px;
@@ -89,7 +90,5 @@ body{
     stroke-dashoffset: 0;
   }
 }
-
-
 
 

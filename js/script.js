@@ -28,7 +28,7 @@ const path = [
 let traveled = 0;
 let index = 0;
 let progress = 0;
-const speed = 2; // pixels per frame
+let speed = 2; // pixels per frame
 let animating = false;
 let animationId = null;
 
@@ -108,4 +108,37 @@ hook.setAttribute('y', startY - hookSize / 2);
 
 
   svgPath.style.strokeDashoffset = totalLength; // 👈 hide path again
+});
+
+const settingsBtn = document.querySelector('.instruction');
+
+settingsBtn.addEventListener('click', () => {
+  Swal.fire({
+    title: 'Settings',
+    html: `
+      <label for="speedRange">
+        Speed: <strong><span id="speedValue">${speed}</span></strong>
+      </label>
+      <input 
+        type="range" 
+        id="speedRange" 
+        min="0.5" 
+        max="10" 
+        step="0.5" 
+        value="${speed}"
+        style="width:100%; margin-top:10px;"
+      />
+    `,
+    confirmButtonText: 'Done',
+	confirmButtonColor: 'rgb(35, 184, 233)',
+    didOpen: () => {
+      const speedRange = document.getElementById('speedRange');
+      const speedValue = document.getElementById('speedValue');
+
+      speedRange.addEventListener('input', () => {
+        speed = parseFloat(speedRange.value);
+        speedValue.textContent = speed;
+      });
+    }
+  });
 });
