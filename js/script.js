@@ -9,7 +9,7 @@ svgPath.style.strokeDasharray = totalLength;
 svgPath.style.strokeDashoffset = totalLength;
 // Path points
 const path = [
-  [230, 2], [234, 14], [250, 14], [250, 62], [186, 62], [186, 94], [170, 94],
+  [234, 9], [234, 14], [250, 14], [250, 62], [186, 62], [186, 94], [170, 94],
   [170, 110], [154, 110], [154, 94], [138, 94], [138, 126], [122, 126], [122, 142],
   [58, 142], [58, 158], [90, 158], [90, 174], [122, 174], [122, 190], [138, 190],
   [138, 174], [154, 174], [154, 190], [186, 190], [186, 206], [298, 206], [298, 222],
@@ -22,7 +22,7 @@ const path = [
   [106, 350], [106, 382], [138, 382], [138, 366], [154, 366], [154, 350], [170, 350],
   [170, 382], [154, 382], [154, 398], [170, 398], [170, 430], [186, 430], [186, 414],
   [234, 414], [234, 430], [202, 430], [202, 446], [170, 446], [170, 478], [186, 478],
-  [186, 462], [202, 462], [202, 478], [234, 478], [234, 462], [250, 462], [250, 482]
+  [186, 462], [202, 462], [202, 478], [234, 478], [234, 462], [250, 462], [250, 476]
 ];
 
 let traveled = 0;
@@ -33,10 +33,18 @@ let animating = false;
 let animationId = null;
 
 function moveHook() {
-  if (index >= path.length - 1) {
-    animating = false;
-    return;
-  }
+ if (index >= path.length - 1) {
+  const [endX, endY] = path[path.length - 1];
+  const hookSize = 20;
+
+  hook.setAttribute('x', endX - hookSize / 2);
+  hook.setAttribute('y', endY - hookSize / 2);
+
+  svgPath.style.strokeDashoffset = 0; // fully drawn
+  animating = false;
+  return;
+}
+
 
   const [x1, y1] = path[index];
   const [x2, y2] = path[index + 1];
@@ -58,10 +66,13 @@ function moveHook() {
   const newX = x1 + dx * t;
   const newY = y1 + dy * t;
 
+
  const hookSize = 20;
 
 hook.setAttribute('x', newX - hookSize / 2);
 hook.setAttribute('y', newY - hookSize / 2);
+ 
+
 
 
   // 👇 reveal path based on hook distance
@@ -90,8 +101,11 @@ resetBtn.addEventListener('click', () => {
   traveled = 0;
 
   const [startX, startY] = path[0];
-  hook.setAttribute('x', startX);
-  hook.setAttribute('y', startY);
+  
+  const hookSize = 20;
+hook.setAttribute('x', startX - hookSize / 2);
+hook.setAttribute('y', startY - hookSize / 2);
+
 
   svgPath.style.strokeDashoffset = totalLength; // 👈 hide path again
 });
