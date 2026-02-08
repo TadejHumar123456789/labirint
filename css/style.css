@@ -1,0 +1,95 @@
+*{
+	margin:0;
+	padding:0;
+	
+}
+body{
+	background:url('../img/ozadje1.png') center no-repeat;
+	background-size: cover;        
+    background-attachment: fixed;
+}
+
+
+.player {
+  display:flex;
+  width: 100px;
+  height: 100px;
+  margin:auto;
+ margin-top:14.5%;
+  background-image: url('../img/ribic.png');
+  background-size: cover;
+  z-index: 10;
+}
+.hook{
+  width: 20px;
+  height: 20px;
+}
+
+.maze{
+	display:flex;
+	margin:auto;
+	
+}
+.fish {
+  display:flex;
+  width: 20px;
+  height: 20px;
+  margin:auto;
+  background-image: url('../img/tuna.png');
+  background-size: cover;
+ 
+}
+
+.buttons{
+  margin:auto;
+  display: flex;
+  justify-content: center;
+  gap: 20px;              
+  width:484px;
+  margin-top:2%;
+}
+.start{
+  display: flex;
+  justify-content: center; 
+  align-items: center;     
+  border-radius: 5px;
+  width: 100px;
+  height: 40px;
+  font-weight:bold;
+}
+.instruction{
+  display: flex;
+  justify-content: center; 
+  align-items: center;     
+  border-radius: 5px;
+  width: 100px;
+  height: 40px;
+  font-weight:bold;
+}
+.reset{
+	display: flex;
+  justify-content: center; 
+  align-items: center;     
+  border-radius: 5px;
+  width: 100px;
+  height: 40px;
+  font-weight:bold;
+}
+.path {
+  stroke-dasharray: 3000;      
+  stroke-dashoffset: 3000;
+ 
+}
+.path.animate {
+  animation: draw-line 30s ease forwards;
+}
+
+@keyframes draw-line {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+
+
+
