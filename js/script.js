@@ -10,6 +10,25 @@ const zunanja = document.getElementById('zunanja');
 const HOOK_IMG = '../img/hook.png';
 const TUNA_IMG = '../img/tuna.png';
 
+const TUNA_DIR = {
+  desno: 'img/tuna_desno.png',
+  levo:  'img/tuna_levo.png',
+  gor:    'img/tuna_gor.png',
+  dol:  'img/tuna_dol.png'
+};
+
+function getDir(dx, dy) {
+  // večji premik določi smer
+  if (Math.abs(dx) > Math.abs(dy)) return dx >= 0 ? 'desno' : 'levo';
+  return dy >= 0 ? 'dol' : 'gor';
+}
+
+function setTunaByVector(dx, dy) {
+  const dir = getDir(dx, dy);
+  hook.setAttribute('href', TUNA_DIR[dir]);
+}
+
+
 let caught = false;
 let reelY = null;
 
@@ -53,7 +72,11 @@ function moveHook() {
 if (index >= path.length - 1 && !caught) {
     caught = true;
   
-    hook.setAttribute('href', 'img/tuna.png'); // modern fallback
+    // smer zadnjega segmenta (od predzadnje do zadnje točke)
+const [px, py] = path[path.length - 2];
+const [lx, ly] = path[path.length - 1];
+setTunaByVector(lx - px, ly - py);
+
     
      if (zunanja) zunanja.style.display = 'none';
 	
@@ -116,6 +139,8 @@ function reelBack() {
 
     const dx = x0 - x1;
     const dy = y0 - y1;
+	if (caught) setTunaByVector(dx, dy);
+
     const distance = Math.hypot(dx, dy);
 
     const step = Math.min(remainingSpeed, distance - progress);
