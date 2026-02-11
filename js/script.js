@@ -1,5 +1,7 @@
 // =====================
 //  MAZE FISHING (SMOOTH STEP, NO SKIPPING POINTS)
+//  + FIX: Spacebar DOES NOT click SweetAlert OK
+//  + FIX: When caught at the end -> fish faces UP
 // =====================
 
 const hook = document.querySelector('.hook');
@@ -27,12 +29,12 @@ let phase = 'idle';
 
 // ---- REEL SETTINGS ----
 let reelTargetY = -2;
-let reelStepUp = 16;     // how much up per input (but animated)
+let reelStepUp = 30;     // how much up per input (but animated)
 let slipChance = 0.10;
 let slipAmount = 4;
 
 // ---- SMOOTH SETTINGS ----
-let stepDuration = 180;  // ms for one segment step (back) / one up step
+let stepDuration = 80;   // ms for one segment step (back) / one up step
 let stepLock = false;    // prevents skipping
 
 // ---- IMAGES ----
@@ -105,9 +107,8 @@ function moveHook() {
     if (animationId) cancelAnimationFrame(animationId);
     animationId = null;
 
-    const [px, py] = path[path.length - 2];
-    const [lx, ly] = path[path.length - 1];
-    setTunaByVector(lx - px, ly - py);
+    // ✅ FIX: When caught at the end -> show fish facing UP
+    setTunaByVector(0, -1);
 
     if (zunanja) zunanja.style.display = 'none';
 
@@ -164,7 +165,6 @@ function animatePointToPoint(fromI, toI, done) {
 
     setHookXY(x, y);
 
-    // line should move smoothly too
     const lineLen = cumLen[fromI] + (cumLen[toI] - cumLen[fromI]) * t;
     svgPath.style.strokeDashoffset = totalLength - Math.min(lineLen, totalLength);
 
@@ -192,6 +192,8 @@ function backOneSegmentSmooth() {
 
   const [x1, y1] = path[index];
   const [x0, y0] = path[index - 1];
+
+  // during back phase: face direction of movement
   setTunaByVector(x0 - x1, y0 - y1);
 
   animatePointToPoint(index, index - 1, () => {
@@ -212,10 +214,7 @@ function upOneStepSmooth() {
   const start = performance.now();
   const y0 = parseFloat(hook.getAttribute('y')); // top-left y
 
-  // target for this one input
   let target = y0 - reelStepUp;
-
-  // slip sometimes
   if (Math.random() < slipChance) target += slipAmount;
 
   function tick(now) {
@@ -246,14 +245,15 @@ function finishCatchPopup() {
   phase = 'idle';
 
   Swal.fire({
-    title: 'Bravo, ulovil si ribo!',
+    title: 'Well Done',
     imageUrl: 'img/ulovljena.png',
     imageAlt: 'Ulovljena riba',
     imageWidth: '100%',
     width: 500,
     padding: 0,
-    confirmButtonText: 'OK',
+    confirmButtonText: 'Catch more fish',
     confirmButtonColor: 'rgb(35, 184, 233)',
+    focusConfirm: false, // ✅ prevents Space from "clicking" OK by default
     customClass: { image: 'full-image' }
   }).then(() => resetRound());
 }
@@ -302,6 +302,7 @@ resetBtn.addEventListener('click', resetRound);
 
 // ---- CLICK ----
 document.addEventListener('click', (e) => {
+  if (Swal.isVisible()) return; // ✅ ignore game input while popup open
   if (e.target.closest('button')) return;
   if (e.target.closest('.swal2-container')) return;
   handleInputStep();
@@ -310,6 +311,7 @@ document.addEventListener('click', (e) => {
 // ---- SPACE ----
 document.addEventListener('keydown', (e) => {
   if (e.code === 'Space') {
+    if (Swal.isVisible()) return; // ✅ don't let Space trigger popup button
     e.preventDefault();
     handleInputStep();
   }
@@ -319,9 +321,9 @@ document.addEventListener('keydown', (e) => {
 let wheelLock = false;
 
 document.addEventListener('wheel', (e) => {
+  if (Swal.isVisible()) return; // ✅ ignore wheel while popup open
   e.preventDefault();
 
-  // throttle wheel (trackpad)
   if (wheelLock) return;
   wheelLock = true;
   setTimeout(() => (wheelLock = false), stepDuration);
@@ -333,3 +335,25 @@ document.addEventListener('wheel', (e) => {
 
   handleInputStep();
 }, { passive: false });
+
+
+const instructionBtn = document.getElementById('navodila');
+
+instructionBtn.addEventListener('click', (e) => {
+  e.preventDefault();
+  e.stopPropagation(); // da ne sproži document click "handleInputStep"
+
+  Swal.fire({
+    title: 'Instructions',
+    html: `
+      <div style="text-align:left; line-height:1.4">
+        <p>Press Start, and when you catch a fish, hold Space to pull it to the boat.</p>
+        
+      </div>
+    `,
+    icon: 'info',
+    confirmButtonText: 'OK',
+    confirmButtonColor: 'rgb(35, 184, 233)',
+    focusConfirm: false
+  });
+});
