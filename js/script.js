@@ -9,6 +9,7 @@ const zunanja = document.getElementById('zunanja');
 
 const HOOK_IMG = '../img/hook.png';
 const TUNA_IMG = '../img/tuna.png';
+ let popupShown = false;
 
 const TUNA_DIR = {
   desno: 'img/tuna_desno.png',
@@ -82,7 +83,7 @@ setTunaByVector(lx - px, ly - py);
 	
     reelBack();
     reelY = parseFloat(hook.getAttribute('y'));
-    requestAnimationFrame(reelUp);
+    
     return;
 }
 
@@ -126,9 +127,13 @@ setTunaByVector(lx - px, ly - py);
 
 function reelBack() {
   if (index <= 0 && progress <= 0) {
-    animating = false;
-    return;
-  }
+  animating = false;
+
+  // ko pride nazaj na začetek, začne dvigovat gor
+  requestAnimationFrame(reelUp);
+  return;
+}
+
 
   const hookSize = 20;
   let remainingSpeed = speed * 1.5; // can adjust speed
@@ -166,6 +171,48 @@ function reelBack() {
   requestAnimationFrame(reelBack);
 }
 
+function reelUp() {
+  // hook.getAttribute('y') je top-left, zato primerjamo s ciljem
+  const y = parseFloat(hook.getAttribute('y'));
+  const targetY = -10;          // koliko "gor" hočeš (lahko -20, -30 ...)
+  const step = speed * 1.5;     // hitrost dviga
+
+  // med dviganjem: slika naj bo obrnjena gor
+  if (caught) setTunaByVector(0, -1);
+
+  const newY = y - step;
+  hook.setAttribute('y', newY);
+
+  if (newY > targetY) {
+    requestAnimationFrame(reelUp);
+  } else {
+    // zaključi: pripni na target in pokaži popup (samo 1x)
+    hook.setAttribute('y', targetY);
+
+    if (!popupShown) {
+      popupShown = true;
+
+			Swal.fire({
+		  title: 'Well Done',
+		  imageUrl: 'img/ulovljena.png',
+		  imageAlt: 'Ulovljena riba',
+		  imageWidth: '100%',
+		  width: 500,
+		  padding: 0,
+		  background: '#fff',
+		  confirmButtonText: 'OK',
+		  confirmButtonColor: 'rgb(35, 184, 233)',
+		  customClass: {
+			image: 'full-image'
+		  }
+		});
+		
+
+    }
+
+    animating = false; // če želiš ustavit igro na koncu
+  }
+}
 
 
 startBtn.addEventListener('click', () => {
@@ -182,7 +229,8 @@ startBtn.addEventListener('click', () => {
 resetBtn.addEventListener('click', () => {
   animating = false;
   caught = false; 
-  
+  popupShown = false;
+
   if (zunanja) zunanja.style.display = 'flex';
 
 hook.setAttribute('href', 'img/hook.png');
