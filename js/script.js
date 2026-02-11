@@ -1,3 +1,7 @@
+// =====================
+//  MAZE FISHING (SMOOTH STEP, NO SKIPPING POINTS)
+// =====================
+
 const hook = document.querySelector('.hook');
 const startBtn = document.getElementById('startBtn');
 const resetBtn = document.getElementById('reset');
@@ -7,19 +11,39 @@ const totalLength = svgPath.getTotalLength();
 
 const zunanja = document.getElementById('zunanja');
 
-const HOOK_IMG = '../img/hook.png';
-const TUNA_IMG = '../img/tuna.png';
- let popupShown = false;
+let traveled = 0;
+let index = 0;       // current point index in path
+let progress = 0;    // progress inside segment (forward auto)
+let speed = 3;
 
+let animating = false;
+let animationId = null;
+
+let caught = false;
+let popupShown = false;
+
+// PHASE: 'idle' | 'forward' | 'back' | 'up'
+let phase = 'idle';
+
+// ---- REEL SETTINGS ----
+let reelTargetY = -2;
+let reelStepUp = 16;     // how much up per input (but animated)
+let slipChance = 0.10;
+let slipAmount = 4;
+
+// ---- SMOOTH SETTINGS ----
+let stepDuration = 180;  // ms for one segment step (back) / one up step
+let stepLock = false;    // prevents skipping
+
+// ---- IMAGES ----
 const TUNA_DIR = {
   desno: 'img/tuna_desno.png',
   levo:  'img/tuna_levo.png',
-  gor:    'img/tuna_gor.png',
-  dol:  'img/tuna_dol.png'
+  gor:   'img/tuna_gor.png',
+  dol:   'img/tuna_dol.png'
 };
 
 function getDir(dx, dy) {
-  // večji premik določi smer
   if (Math.abs(dx) > Math.abs(dy)) return dx >= 0 ? 'desno' : 'levo';
   return dy >= 0 ? 'dol' : 'gor';
 }
@@ -29,20 +53,7 @@ function setTunaByVector(dx, dy) {
   hook.setAttribute('href', TUNA_DIR[dir]);
 }
 
-
-let caught = false;
-let reelY = null;
-
-const preloadHook = new Image();
-preloadHook.src = HOOK_IMG;
-
-const preloadTuna = new Image();
-preloadTuna.src = TUNA_IMG;
-
-
-svgPath.style.strokeDasharray = totalLength;
-svgPath.style.strokeDashoffset = totalLength;
-// Path points
+// ---- PATH ----
 const path = [
   [234, 9], [234, 14], [250, 14], [250, 62], [186, 62], [186, 94], [170, 94],
   [170, 110], [154, 110], [154, 94], [138, 94], [138, 126], [122, 126], [122, 142],
@@ -60,37 +71,51 @@ const path = [
   [186, 462], [202, 462], [202, 478], [234, 478], [234, 462], [250, 462], [250, 476]
 ];
 
-let traveled = 0;
-let index = 0;
-let progress = 0;
-let speed = 2; // pixels per frame
-let animating = false;
-let animationId = null;
+// ---- precompute lengths ----
+const cumLen = [0];
+for (let i = 0; i < path.length - 1; i++) {
+  const [x1, y1] = path[i];
+  const [x2, y2] = path[i + 1];
+  cumLen.push(cumLen[i] + Math.hypot(x2 - x1, y2 - y1));
+}
 
+// ---- SVG INIT ----
+svgPath.style.strokeDasharray = totalLength;
+svgPath.style.strokeDashoffset = totalLength;
+
+function setHookXY(x, y) {
+  const hookSize = 20;
+  hook.setAttribute('x', Math.round(x - hookSize / 2));
+  hook.setAttribute('y', Math.round(y - hookSize / 2));
+}
+
+function updateStrokeByIndex(i) {
+  traveled = cumLen[i];
+  svgPath.style.strokeDashoffset = totalLength - Math.min(traveled, totalLength);
+}
+
+// ---- FORWARD AUTO MOVE ----
 function moveHook() {
   if (!animating) return;
 
-if (index >= path.length - 1 && !caught) {
+  if (index >= path.length - 1 && !caught) {
     caught = true;
-  
-    // smer zadnjega segmenta (od predzadnje do zadnje točke)
-const [px, py] = path[path.length - 2];
-const [lx, ly] = path[path.length - 1];
-setTunaByVector(lx - px, ly - py);
 
-    
-     if (zunanja) zunanja.style.display = 'none';
-	
-    reelBack();
-    reelY = parseFloat(hook.getAttribute('y'));
-    
+    animating = false;
+    if (animationId) cancelAnimationFrame(animationId);
+    animationId = null;
+
+    const [px, py] = path[path.length - 2];
+    const [lx, ly] = path[path.length - 1];
+    setTunaByVector(lx - px, ly - py);
+
+    if (zunanja) zunanja.style.display = 'none';
+
+    phase = 'back';
     return;
-}
-
-
+  }
 
   const hookSize = 20;
-
   let remainingSpeed = speed;
 
   while (remainingSpeed > 0 && index < path.length - 1) {
@@ -99,24 +124,21 @@ setTunaByVector(lx - px, ly - py);
 
     const dx = x2 - x1;
     const dy = y2 - y1;
-    const distance = Math.hypot(dx, dy);
+    const dist = Math.hypot(dx, dy);
 
-    const step = Math.min(remainingSpeed, distance - progress);
+    const step = Math.min(remainingSpeed, dist - progress);
     progress += step;
     remainingSpeed -= step;
 
-    const t = progress / distance;
+    const t = progress / dist;
 
-    const newX = x1 + dx * t;
-    const newY = y1 + dy * t;
-
-    hook.setAttribute('x', Math.round(newX - hookSize / 2));
-    hook.setAttribute('y', Math.round(newY - hookSize / 2));
+    hook.setAttribute('x', Math.round(x1 + dx * t - hookSize / 2));
+    hook.setAttribute('y', Math.round(y1 + dy * t - hookSize / 2));
 
     traveled += step;
     svgPath.style.strokeDashoffset = totalLength - Math.min(traveled, totalLength);
 
-    if (progress >= distance) {
+    if (progress >= dist) {
       progress = 0;
       index++;
     }
@@ -125,218 +147,189 @@ setTunaByVector(lx - px, ly - py);
   animationId = requestAnimationFrame(moveHook);
 }
 
-function reelBack() {
-  if (index <= 0 && progress <= 0) {
-  animating = false;
+// ---- SMOOTH STEP BETWEEN POINTS (NO SKIP) ----
+function animatePointToPoint(fromI, toI, done) {
+  stepLock = true;
 
-  // ko pride nazaj na začetek, začne dvigovat gor
-  requestAnimationFrame(reelUp);
-  return;
-}
+  const [fx, fy] = path[fromI];
+  const [tx, ty] = path[toI];
 
+  const start = performance.now();
 
-  const hookSize = 20;
-  let remainingSpeed = speed * 1.5; // can adjust speed
+  function tick(now) {
+    const t = Math.min(1, (now - start) / stepDuration);
 
-  while (remainingSpeed > 0 && (index > 0 || progress > 0)) {
-    const [x1, y1] = path[index];
-    const [x0, y0] = path[index - 1] || path[0];
+    const x = fx + (tx - fx) * t;
+    const y = fy + (ty - fy) * t;
 
-    const dx = x0 - x1;
-    const dy = y0 - y1;
-	if (caught) setTunaByVector(dx, dy);
+    setHookXY(x, y);
 
-    const distance = Math.hypot(dx, dy);
+    // line should move smoothly too
+    const lineLen = cumLen[fromI] + (cumLen[toI] - cumLen[fromI]) * t;
+    svgPath.style.strokeDashoffset = totalLength - Math.min(lineLen, totalLength);
 
-    const step = Math.min(remainingSpeed, distance - progress);
-    progress += step;
-    remainingSpeed -= step;
-
-    const t = progress / distance;
-    const newX = x1 + dx * t;
-    const newY = y1 + dy * t;
-
-    hook.setAttribute('x', Math.round(newX - hookSize / 2));
-    hook.setAttribute('y', Math.round(newY - hookSize / 2));
-
-    traveled -= step;
-    svgPath.style.strokeDashoffset = totalLength - Math.max(traveled, 0);
-
-    if (progress >= distance) {
-      progress = 0;
-      index--;
+    if (t < 1) requestAnimationFrame(tick);
+    else {
+      index = toI;
+      updateStrokeByIndex(index);
+      stepLock = false;
+      done?.();
     }
   }
 
-  requestAnimationFrame(reelBack);
+  requestAnimationFrame(tick);
 }
 
-function reelUp() {
-  // hook.getAttribute('y') je top-left, zato primerjamo s ciljem
-  const y = parseFloat(hook.getAttribute('y'));
-  const targetY = -10;          // koliko "gor" hočeš (lahko -20, -30 ...)
-  const step = speed * 1.5;     // hitrost dviga
+// ---- BACK ONE SEGMENT (SMOOTH) ----
+function backOneSegmentSmooth() {
+  if (stepLock) return;
 
-  // med dviganjem: slika naj bo obrnjena gor
-  if (caught) setTunaByVector(0, -1);
+  if (index <= 0) {
+    phase = 'up';
+    setTunaByVector(0, -1);
+    return;
+  }
 
-  const newY = y - step;
-  hook.setAttribute('y', newY);
+  const [x1, y1] = path[index];
+  const [x0, y0] = path[index - 1];
+  setTunaByVector(x0 - x1, y0 - y1);
 
-  if (newY > targetY) {
-    requestAnimationFrame(reelUp);
-  } else {
-    // zaključi: pripni na target in pokaži popup (samo 1x)
-    hook.setAttribute('y', targetY);
+  animatePointToPoint(index, index - 1, () => {
+    if (index <= 0) {
+      phase = 'up';
+      setTunaByVector(0, -1);
+    }
+  });
+}
 
-    if (!popupShown) {
+// ---- UP STEP (SMOOTH, STILL REQUIRES INPUT EACH STEP) ----
+function upOneStepSmooth() {
+  if (stepLock) return;
+  stepLock = true;
+
+  setTunaByVector(0, -1);
+
+  const start = performance.now();
+  const y0 = parseFloat(hook.getAttribute('y')); // top-left y
+
+  // target for this one input
+  let target = y0 - reelStepUp;
+
+  // slip sometimes
+  if (Math.random() < slipChance) target += slipAmount;
+
+  function tick(now) {
+    const t = Math.min(1, (now - start) / stepDuration);
+    const y = y0 + (target - y0) * t;
+
+    hook.setAttribute('y', y);
+
+    if (t < 1) requestAnimationFrame(tick);
+    else {
+      stepLock = false;
+
+      const yNow = parseFloat(hook.getAttribute('y'));
+      if (yNow <= reelTargetY) {
+        hook.setAttribute('y', reelTargetY);
+        finishCatchPopup();
+      }
+    }
+  }
+
+  requestAnimationFrame(tick);
+}
+
+// ---- POPUP ----
+function finishCatchPopup() {
+  if (popupShown) return;
   popupShown = true;
+  phase = 'idle';
 
   Swal.fire({
-    title: 'Well Done',
+    title: 'Bravo, ulovil si ribo!',
     imageUrl: 'img/ulovljena.png',
     imageAlt: 'Ulovljena riba',
     imageWidth: '100%',
     width: 500,
     padding: 0,
-    background: '#fff',
-    confirmButtonText: 'Catch more',
+    confirmButtonText: 'OK',
     confirmButtonColor: 'rgb(35, 184, 233)',
     customClass: { image: 'full-image' }
-  }).then(() => {
-    // ✅ po OK: vrni nazaj na hook + start
-
-    caught = false;
-    animating = false;
-
-    // pokaži zunanjo ribo nazaj (če želiš)
-    if (zunanja) zunanja.style.display = 'flex';
-
-    // slika nazaj na hook
-    hook.setAttribute('href', 'img/hook.png');
-
-    // reset "poti"
-    index = 0;
-    progress = 0;
-    traveled = 0;
-
-    // postavi hook na start pozicijo
-    const [startX, startY] = path[0];
-    const hookSize = 20;
-    hook.setAttribute('x', startX - hookSize / 2);
-    hook.setAttribute('y', startY - hookSize / 2);
-
-    // skrij narisano pot spet
-    svgPath.style.strokeDashoffset = totalLength;
-  });
+  }).then(() => resetRound());
 }
 
-animating = false;
-
-
-    animating = false; // če želiš ustavit igro na koncu
-  }
-}
+// ---- RESET ----
 function resetRound() {
   caught = false;
   popupShown = false;
+  phase = 'idle';
   animating = false;
-
-  // pokaži zunanjo ribo nazaj
-  if (zunanja) zunanja.style.display = 'flex';
-
-  // slika nazaj na hook
-  hook.setAttribute('href', 'img/hook.png');
-
-  // reset poti
-  index = 0;
+  stepLock = false;
   progress = 0;
-  traveled = 0;
 
-  // postavi hook na start
-  const [startX, startY] = path[0];
-  const hookSize = 20;
-  hook.setAttribute('x', startX - hookSize / 2);
-  hook.setAttribute('y', startY - hookSize / 2);
-
-  // skrij path
-  svgPath.style.strokeDashoffset = totalLength;
-
-  // ustavi morebitno animacijo
   if (animationId) cancelAnimationFrame(animationId);
   animationId = null;
+
+  if (zunanja) zunanja.style.display = 'flex';
+
+  hook.setAttribute('href', 'img/hook.png');
+
+  index = 0;
+  traveled = 0;
+
+  const [startX, startY] = path[0];
+  setHookXY(startX, startY);
+
+  svgPath.style.strokeDashoffset = totalLength;
 }
 
+// ---- INPUT DISPATCH ----
+function handleInputStep() {
+  if (!caught) return;
+  if (phase === 'back') backOneSegmentSmooth();
+  else if (phase === 'up') upOneStepSmooth();
+}
 
+// ---- BUTTONS ----
 startBtn.addEventListener('click', () => {
-	 resetRound();
-	hook.setAttribute('href', 'img/hook.png');
-  if (!animating) {
-    index = 0;
-    progress = 0;
-	traveled = 0;
-    animating = true;
-    moveHook();
+  resetRound();
+  animating = true;
+  phase = 'forward';
+  moveHook();
+});
+
+resetBtn.addEventListener('click', resetRound);
+
+// ---- CLICK ----
+document.addEventListener('click', (e) => {
+  if (e.target.closest('button')) return;
+  if (e.target.closest('.swal2-container')) return;
+  handleInputStep();
+});
+
+// ---- SPACE ----
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') {
+    e.preventDefault();
+    handleInputStep();
   }
 });
 
-resetBtn.addEventListener('click', () => {
-  animating = false;
-  caught = false; 
-  popupShown = false;
+// ---- SCROLL WHEEL (UP ONLY), SMOOTH, NO SKIP ----
+let wheelLock = false;
 
-  if (zunanja) zunanja.style.display = 'flex';
+document.addEventListener('wheel', (e) => {
+  e.preventDefault();
 
-hook.setAttribute('href', 'img/hook.png');
+  // throttle wheel (trackpad)
+  if (wheelLock) return;
+  wheelLock = true;
+  setTimeout(() => (wheelLock = false), stepDuration);
 
+  const up = e.deltaY < 0;
+  if (!up) return;
 
+  if (e.target.closest('button')) return;
 
-  if (animationId) cancelAnimationFrame(animationId);
-
-  index = 0;
-  progress = 0;
-  traveled = 0;
-
-  const [startX, startY] = path[0];
-  
-  const hookSize = 20;
-hook.setAttribute('x', startX - hookSize / 2);
-hook.setAttribute('y', startY - hookSize / 2);
-
-
-  svgPath.style.strokeDashoffset = totalLength; // 👈 hide path again
-});
-
-const settingsBtn = document.querySelector('.instruction');
-
-settingsBtn.addEventListener('click', () => {
-  Swal.fire({
-    title: 'Settings',
-    html: `
-      <label for="speedRange">
-        Speed: <strong><span id="speedValue">${speed}</span></strong>
-      </label>
-      <input 
-        type="range" 
-        id="speedRange" 
-        min="0.5" 
-        max="10" 
-        step="0.5" 
-        value="${speed}"
-        style="width:100%; margin-top:10px;"
-      />
-    `,
-    confirmButtonText: 'Done',
-	confirmButtonColor: 'rgb(35, 184, 233)',
-    didOpen: () => {
-      const speedRange = document.getElementById('speedRange');
-      const speedValue = document.getElementById('speedValue');
-
-      speedRange.addEventListener('input', () => {
-        speed = parseFloat(speedRange.value);
-        speedValue.textContent = speed;
-      });
-    }
-  });
-});
-
+  handleInputStep();
+}, { passive: false });
