@@ -190,32 +190,86 @@ function reelUp() {
     hook.setAttribute('y', targetY);
 
     if (!popupShown) {
-      popupShown = true;
+  popupShown = true;
 
-			Swal.fire({
-		  title: 'Well Done',
-		  imageUrl: 'img/ulovljena.png',
-		  imageAlt: 'Ulovljena riba',
-		  imageWidth: '100%',
-		  width: 500,
-		  padding: 0,
-		  background: '#fff',
-		  confirmButtonText: 'OK',
-		  confirmButtonColor: 'rgb(35, 184, 233)',
-		  customClass: {
-			image: 'full-image'
-		  }
-		});
-		
+  Swal.fire({
+    title: 'Well Done',
+    imageUrl: 'img/ulovljena.png',
+    imageAlt: 'Ulovljena riba',
+    imageWidth: '100%',
+    width: 500,
+    padding: 0,
+    background: '#fff',
+    confirmButtonText: 'Catch more',
+    confirmButtonColor: 'rgb(35, 184, 233)',
+    customClass: { image: 'full-image' }
+  }).then(() => {
+    // ✅ po OK: vrni nazaj na hook + start
 
-    }
+    caught = false;
+    animating = false;
+
+    // pokaži zunanjo ribo nazaj (če želiš)
+    if (zunanja) zunanja.style.display = 'flex';
+
+    // slika nazaj na hook
+    hook.setAttribute('href', 'img/hook.png');
+
+    // reset "poti"
+    index = 0;
+    progress = 0;
+    traveled = 0;
+
+    // postavi hook na start pozicijo
+    const [startX, startY] = path[0];
+    const hookSize = 20;
+    hook.setAttribute('x', startX - hookSize / 2);
+    hook.setAttribute('y', startY - hookSize / 2);
+
+    // skrij narisano pot spet
+    svgPath.style.strokeDashoffset = totalLength;
+  });
+}
+
+animating = false;
+
 
     animating = false; // če želiš ustavit igro na koncu
   }
 }
+function resetRound() {
+  caught = false;
+  popupShown = false;
+  animating = false;
+
+  // pokaži zunanjo ribo nazaj
+  if (zunanja) zunanja.style.display = 'flex';
+
+  // slika nazaj na hook
+  hook.setAttribute('href', 'img/hook.png');
+
+  // reset poti
+  index = 0;
+  progress = 0;
+  traveled = 0;
+
+  // postavi hook na start
+  const [startX, startY] = path[0];
+  const hookSize = 20;
+  hook.setAttribute('x', startX - hookSize / 2);
+  hook.setAttribute('y', startY - hookSize / 2);
+
+  // skrij path
+  svgPath.style.strokeDashoffset = totalLength;
+
+  // ustavi morebitno animacijo
+  if (animationId) cancelAnimationFrame(animationId);
+  animationId = null;
+}
 
 
 startBtn.addEventListener('click', () => {
+	 resetRound();
 	hook.setAttribute('href', 'img/hook.png');
   if (!animating) {
     index = 0;

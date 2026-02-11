@@ -53,6 +53,7 @@ body{
 }
 
 .maze{
+
 	display:flex;
 	margin:auto;
 	 max-width: 90vw;
