@@ -5,11 +5,19 @@ const resetBtn = document.getElementById('reset');
 const svgPath = document.querySelector('.path');
 const totalLength = svgPath.getTotalLength();
 
+const zunanja = document.getElementById('zunanja');
+
 const HOOK_IMG = '../img/hook.png';
 const TUNA_IMG = '../img/tuna.png';
 
 let caught = false;
 let reelY = null;
+
+const preloadHook = new Image();
+preloadHook.src = HOOK_IMG;
+
+const preloadTuna = new Image();
+preloadTuna.src = TUNA_IMG;
 
 
 svgPath.style.strokeDasharray = totalLength;
@@ -42,18 +50,19 @@ let animationId = null;
 function moveHook() {
   if (!animating) return;
 
- if (index >= path.length - 1 && !caught) {
-  caught = true;
-hook.setAttribute('href', '../img/tuna.png');
-reelBack(); // move along path back
-
-
-  // start reeling upward from current Y
-  reelY = parseFloat(hook.getAttribute('y'));
-
-  requestAnimationFrame(reelUp);
-  return;
+if (index >= path.length - 1 && !caught) {
+    caught = true;
+  
+    hook.setAttribute('href', 'img/tuna.png'); // modern fallback
+    
+     if (zunanja) zunanja.style.display = 'none';
+	
+    reelBack();
+    reelY = parseFloat(hook.getAttribute('y'));
+    requestAnimationFrame(reelUp);
+    return;
 }
+
 
 
   const hookSize = 20;
@@ -135,6 +144,7 @@ function reelBack() {
 
 
 startBtn.addEventListener('click', () => {
+	hook.setAttribute('href', 'img/hook.png');
   if (!animating) {
     index = 0;
     progress = 0;
@@ -146,8 +156,13 @@ startBtn.addEventListener('click', () => {
 
 resetBtn.addEventListener('click', () => {
   animating = false;
-  caught = false;
-hook.setAttribute('href', '../img/hook.png');
+  caught = false; 
+  
+  if (zunanja) zunanja.style.display = 'flex';
+
+hook.setAttribute('href', 'img/hook.png');
+
+
 
   if (animationId) cancelAnimationFrame(animationId);
 
