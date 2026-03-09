@@ -44,12 +44,21 @@ const TUNA_DIR = {
   gor:   'img/tuna_gor.png',
   dol:   'img/tuna_dol.png'
 };
+const HOOK_DIR = {
+  desno: 'img/hook_desno.png',
+  levo:  'img/hook_levo.png',
+  gor:   'img/hook_gor.png',
+  dol:   'img/hook_dol.png'
+};
 
 function getDir(dx, dy) {
   if (Math.abs(dx) > Math.abs(dy)) return dx >= 0 ? 'desno' : 'levo';
   return dy >= 0 ? 'dol' : 'gor';
 }
-
+function setHookByVector(dx, dy) {
+  const dir = getDir(dx, dy);
+  hook.setAttribute('href', HOOK_DIR[dir]);
+}
 function setTunaByVector(dx, dy) {
   const dir = getDir(dx, dy);
   hook.setAttribute('href', TUNA_DIR[dir]);
@@ -133,8 +142,9 @@ function moveHook() {
 
     const t = progress / dist;
 
-    hook.setAttribute('x', Math.round(x1 + dx * t - hookSize / 2));
-    hook.setAttribute('y', Math.round(y1 + dy * t - hookSize / 2));
+  setHookByVector(dx, dy);
+hook.setAttribute('x', Math.round(x1 + dx * t - hookSize / 2));
+hook.setAttribute('y', Math.round(y1 + dy * t - hookSize / 2));
 
     traveled += step;
     svgPath.style.strokeDashoffset = totalLength - Math.min(traveled, totalLength);
@@ -229,34 +239,16 @@ function upOneStepSmooth() {
 
       const yNow = parseFloat(hook.getAttribute('y'));
       if (yNow <= reelTargetY) {
-        hook.setAttribute('y', reelTargetY);
-        finishCatchPopup();
-      }
+  hook.setAttribute('y', reelTargetY);
+  resetRound();
+}
     }
   }
 
   requestAnimationFrame(tick);
 }
 
-// ---- POPUP ----
-function finishCatchPopup() {
-  if (popupShown) return;
-  popupShown = true;
-  phase = 'idle';
 
-  Swal.fire({
-    title: 'Well Done',
-    imageUrl: 'img/ulovljena.png',
-    imageAlt: 'Ulovljena riba',
-    imageWidth: '100%',
-    width: 500,
-    padding: 0,
-    confirmButtonText: 'Catch more fish',
-    confirmButtonColor: 'rgb(35, 184, 233)',
-    focusConfirm: false, // ✅ prevents Space from "clicking" OK by default
-    customClass: { image: 'full-image' }
-  }).then(() => resetRound());
-}
 
 // ---- RESET ----
 function resetRound() {
@@ -272,7 +264,7 @@ function resetRound() {
 
   if (zunanja) zunanja.style.display = 'flex';
 
-  hook.setAttribute('href', 'img/hook.png');
+  hook.setAttribute('href', HOOK_DIR.dol);
 
   index = 0;
   traveled = 0;
