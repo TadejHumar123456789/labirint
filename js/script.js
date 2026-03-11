@@ -5,14 +5,13 @@
 // =====================
 
 const hook = document.querySelector('.hook');
-const startBtn = document.getElementById('startBtn');
-const resetBtn = document.getElementById('reset');
 
+const reelBtn = document.getElementById('reelBtn');
 const svgPath = document.querySelector('.path');
 const totalLength = svgPath.getTotalLength();
 
 const zunanja = document.getElementById('zunanja');
-
+let reelHoldInterval = null;
 let traveled = 0;
 let index = 0;       // current point index in path
 let progress = 0;    // progress inside segment (forward auto)
@@ -34,7 +33,7 @@ let slipChance = 0.10;
 let slipAmount = 4;
 
 // ---- SMOOTH SETTINGS ----
-let stepDuration = 80;   // ms for one segment step (back) / one up step
+let stepDuration = 250;   // hitrost mlincka in vlecenja ribe
 let stepLock = false;    // prevents skipping
 
 // ---- IMAGES ----
@@ -89,7 +88,42 @@ for (let i = 0; i < path.length - 1; i++) {
   const [x2, y2] = path[i + 1];
   cumLen.push(cumLen[i] + Math.hypot(x2 - x1, y2 - y1));
 }
+function startReeling() {
+  if (Swal.isVisible()) return;
+  if (!caught) return;
+  if (phase !== 'back' && phase !== 'up') return;
+  if (reelHoldInterval) return;
 
+  handleInputStep();
+  reelRotation += 360;
+  reelImg.style.transform = `rotate(${reelRotation}deg)`;
+
+  reelHoldInterval = setInterval(() => {
+    handleInputStep();
+    reelRotation += 360;
+    reelImg.style.transform = `rotate(${reelRotation}deg)`;
+  }, stepDuration + 20);
+}
+reelBtn.addEventListener('mousedown', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  startReeling();
+});
+reelBtn.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  startReeling();
+}, { passive: false });
+
+document.addEventListener('touchend', stopReeling);
+document.addEventListener('touchcancel', stopReeling);
+document.addEventListener('mouseup', stopReeling);
+document.addEventListener('mouseleave', stopReeling);
+function stopReeling() {
+  if (reelHoldInterval) {
+    clearInterval(reelHoldInterval);
+    reelHoldInterval = null;
+  }
+}
 // ---- SVG INIT ----
 svgPath.style.strokeDasharray = totalLength;
 svgPath.style.strokeDashoffset = totalLength;
@@ -109,6 +143,11 @@ function updateStrokeByIndex(i) {
 function moveHook() {
   if (!animating) return;
 
+  if (paused) {
+    animationId = requestAnimationFrame(moveHook);
+    return;
+  }
+
   if (index >= path.length - 1 && !caught) {
     caught = true;
 
@@ -116,10 +155,10 @@ function moveHook() {
     if (animationId) cancelAnimationFrame(animationId);
     animationId = null;
 
-    // ✅ FIX: When caught at the end -> show fish facing UP
     setTunaByVector(0, -1);
 
     if (zunanja) zunanja.style.display = 'none';
+    if (reelBtn) reelBtn.style.display = 'block';
 
     phase = 'back';
     return;
@@ -142,9 +181,9 @@ function moveHook() {
 
     const t = progress / dist;
 
-  setHookByVector(dx, dy);
-hook.setAttribute('x', Math.round(x1 + dx * t - hookSize / 2));
-hook.setAttribute('y', Math.round(y1 + dy * t - hookSize / 2));
+    setHookByVector(dx, dy);
+    hook.setAttribute('x', Math.round(x1 + dx * t - hookSize / 2));
+    hook.setAttribute('y', Math.round(y1 + dy * t - hookSize / 2));
 
     traveled += step;
     svgPath.style.strokeDashoffset = totalLength - Math.min(traveled, totalLength);
@@ -238,9 +277,14 @@ function upOneStepSmooth() {
       stepLock = false;
 
       const yNow = parseFloat(hook.getAttribute('y'));
-      if (yNow <= reelTargetY) {
+     if (yNow <= reelTargetY) {
   hook.setAttribute('y', reelTargetY);
-  resetRound();
+
+  animating = false;
+  phase = 'idle';
+  stepLock = false;
+
+  showWinPopup();
 }
     }
   }
@@ -252,13 +296,15 @@ function upOneStepSmooth() {
 
 // ---- RESET ----
 function resetRound() {
+	stopReeling();
   caught = false;
+  paused = false;
   popupShown = false;
   phase = 'idle';
   animating = false;
   stepLock = false;
   progress = 0;
-
+if (reelBtn) reelBtn.style.display = 'none';
   if (animationId) cancelAnimationFrame(animationId);
   animationId = null;
 
@@ -275,6 +321,53 @@ function resetRound() {
   svgPath.style.strokeDashoffset = totalLength;
 }
 
+const reelImg = reelBtn.querySelector('img');
+let reelRotation = 0;
+
+reelBtn.addEventListener('click', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+
+  reelRotation += 360;
+  reelImg.style.transform = `rotate(${reelRotation}deg)`;
+
+  handleInputStep();
+});
+
+function startGame() {
+  resetRound();
+  paused = false;
+  animating = true;
+  phase = 'forward';
+  moveHook();
+}
+function showInstructionsPopup() {
+  Swal.fire({
+    title: 'Instructions',
+    html: `
+  <div style="text-align:left; line-height:1.5">
+    <p>1. Click <b>Start</b> to begin the maze path.</p>
+    <p>2. The hook moves automatically through the maze.</p>
+    <p>3. When the fish is caught, hold the <b>reel</b> in the bottom left corner to pull it up.</p>
+  </div>
+`,
+    showDenyButton: true,
+    confirmButtonText: 'Start',
+    denyButtonText: 'Back',
+    confirmButtonColor: 'rgb(35, 184, 233)',
+    denyButtonColor: 'rgb(35, 184, 233)',
+    allowOutsideClick: false,
+    allowEscapeKey: false,
+    focusConfirm: false
+  }).then((result) => {
+    if (result.isConfirmed) {
+      startGame();
+    } else if (result.isDenied) {
+      window.dispatchEvent(new Event('load'));
+    }
+  });
+}
+
 // ---- INPUT DISPATCH ----
 function handleInputStep() {
   if (!caught) return;
@@ -282,68 +375,92 @@ function handleInputStep() {
   else if (phase === 'up') upOneStepSmooth();
 }
 
-// ---- BUTTONS ----
-startBtn.addEventListener('click', () => {
-  resetRound();
-  animating = true;
-  phase = 'forward';
-  moveHook();
+
+
+
+
+window.addEventListener('load', () => {
+  Swal.fire({
+    title: 'Welcome',
+    html: `
+      <div style="line-height:1.5; text-align:center;">
+        <p>Choose an option:</p>
+      </div>
+    `,
+    showDenyButton: true,
+    confirmButtonText: 'Start',
+    denyButtonText: 'Instructions',
+    confirmButtonColor: 'rgb(35, 184, 233)',
+    denyButtonColor: 'rgb(35, 184, 233)',
+    allowOutsideClick: false,
+    allowEscapeKey: false,
+    focusConfirm: false
+  }).then((result) => {
+    if (result.isConfirmed) {
+      startGame();
+    } else if (result.isDenied) {
+      showInstructionsPopup();
+    }
+  });
 });
 
-resetBtn.addEventListener('click', resetRound);
+function showWinPopup() {
+  Swal.fire({
+    title: 'Congratulations!',
+    text: 'You caught the fish!',
+    icon: 'success',
+    showDenyButton: true,
+    confirmButtonText: 'Catch more',
+    denyButtonText: 'Instructions',
+    confirmButtonColor: 'rgb(35, 184, 233)',
+    denyButtonColor:'rgb(35, 184, 233)',
+    allowOutsideClick: false,
+    allowEscapeKey: false,
+    focusConfirm: false
+  }).then((result) => {
+    if (result.isConfirmed) {
+      startGame();
+    } else if (result.isDenied) {
+      showInstructionsPopup();
+    }
+  });
+}
+reelBtn.addEventListener('click', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
 
-// ---- CLICK ----
-document.addEventListener('click', (e) => {
-  if (Swal.isVisible()) return; // ✅ ignore game input while popup open
-  if (e.target.closest('button')) return;
-  if (e.target.closest('.swal2-container')) return;
+  reelBtn.classList.remove('spin');
+  void reelBtn.offsetWidth;
+  reelBtn.classList.add('spin');
+
   handleInputStep();
 });
 
-// ---- SPACE ----
+let paused = false;
+
 document.addEventListener('keydown', (e) => {
-  if (e.code === 'Space') {
-    if (Swal.isVisible()) return; // ✅ don't let Space trigger popup button
-    e.preventDefault();
-    handleInputStep();
+  if (e.code === 'Escape') {
+    if (Swal.isVisible()) return;     // med popupom ne pavzira
+    if (phase !== 'forward') return;  // samo med avtomatskim gibanjem
+
+    paused = !paused;
   }
 });
 
-// ---- SCROLL WHEEL (UP ONLY), SMOOTH, NO SKIP ----
-let wheelLock = false;
+const creditsFish = document.getElementById('zunanja');
 
-document.addEventListener('wheel', (e) => {
-  if (Swal.isVisible()) return; // ✅ ignore wheel while popup open
+creditsFish.addEventListener('click', (e) => {
   e.preventDefault();
-
-  if (wheelLock) return;
-  wheelLock = true;
-  setTimeout(() => (wheelLock = false), stepDuration);
-
-  const up = e.deltaY < 0;
-  if (!up) return;
-
-  if (e.target.closest('button')) return;
-
-  handleInputStep();
-}, { passive: false });
-
-
-const instructionBtn = document.getElementById('navodila');
-
-instructionBtn.addEventListener('click', (e) => {
-  e.preventDefault();
-  e.stopPropagation(); // da ne sproži document click "handleInputStep"
+  e.stopPropagation();
 
   Swal.fire({
-    title: 'Instructions',
+    title: 'Credits',
     html: `
-      <div style="text-align:left; line-height:1.4">
-        <p>Press Start, and when you catch a fish, hold Space to pull it to the boat.</p>
-        
+      <div style="text-align:center; line-height:1.6">
+        <p>Tadej Humar</p>
+        <p>2025/26</p>
       </div>
     `,
-    icon: 'info',
     confirmButtonText: 'OK',
     confirmButtonColor: 'rgb(35, 184, 233)',
     focusConfirm: false

@@ -14,11 +14,11 @@ body{
   flex-direction: column;
   align-items: center;
  /* justify-content: center;*/
-  background:url('../img/ozadje3.png') center no-repeat;
+  background:url('../img/ozadje2.png') center no-repeat;
   background-size: cover;
   background-attachment: fixed;
   justify-content: flex-start;   /* ne več center */
-  padding-top: 25vh;             /* koliko dol hočeš (npr 8vh–20vh) */
+  padding-top: 35vh;             /* koliko dol hočeš (npr 8vh–20vh) */
   box-sizing: border-box;
 }
 
@@ -28,17 +28,7 @@ body{
   transform: none;      /* odstrani */
 }
 
-.buttons{
-	
-  position: fixed;
-  right: 20px;
-  top: 50%;
-  transform: translateY(-50%);
-  
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
+
 
 .player{
   width: 70px;
@@ -78,42 +68,8 @@ body{
 }
 
 
-.start{
-  display: flex;
-  justify-content: center; 
-  align-items: center;     
-  border-radius: 5px;
-  width: 100px;
-  height: 40px;
-  font-weight:bold;
-   background-color: rgb(35, 184, 233);
-}
-.instruction{
-  display: flex;
-  justify-content: center; 
-  align-items: center;     
-  border-radius: 5px;
-  width: 100px;
-  height: 40px;
-  font-weight:bold;
-   background-color: rgb(35, 184, 233);
-}
-.reset{
-	display: flex;
-  justify-content: center; 
-  align-items: center;     
-  border-radius: 5px;
-  width: 100px;
-  height: 40px;
-  font-weight:bold;
-   background-color: rgb(35, 184, 233);
-}
 
-.start:hover,
-.instruction:hover,
-.reset:hover{
-  background-color: #5ec3f7; /* malo temnejša ob hover */
-}
+
 
 
 .path {
@@ -136,5 +92,44 @@ body{
 .full-image {
   margin: 0 !important;
   padding: 0 !important;
+}
+
+.reel-btn{
+  position: fixed;
+  left: 20px;
+  bottom: 20px;
+  width: 190px;
+  height: 190px;
+  display: none;
+  cursor: pointer;
+  z-index: 999;
+}
+
+.reel-btn img{
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+  display: block;
+ transition: transform 0.45s ease-out;
+  transform: rotate(0deg);
+}
+
+.reel-btn:hover{
+  transform: scale(1.05);
+}
+
+.reel-btn:active{
+  transform: scale(0.96);
+}
+
+.reel-btn img{
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+  display: block;
 }
 
