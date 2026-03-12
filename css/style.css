@@ -1,82 +1,68 @@
-*{
-	margin:0;
-	padding:0;
-	
+* {
+  margin: 0;
+  padding: 0;
 }
-html, body {
+
+html,
+body {
   height: 100%;
 }
 
-body{
+body {
   margin: 0;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
- /* justify-content: center;*/
-  background:url('../img/ozadje2.png') center no-repeat;
+  justify-content: flex-start;
+  padding-top: 35vh;
+  box-sizing: border-box;
+  background: url('../img/ozadje2.png') center no-repeat;
   background-size: cover;
   background-attachment: fixed;
-  justify-content: flex-start;   /* ne več center */
-  padding-top: 35vh;             /* koliko dol hočeš (npr 8vh–20vh) */
-  box-sizing: border-box;
 }
 
-.cel{
+.cel {
   display: grid;
   justify-items: center;
-  transform: none;      /* odstrani */
+  transform: none;
 }
 
-
-
-.player{
+.player {
   width: 70px;
   height: 70px;
   background-image: url('../img/ribic.png');
   background-size: contain;
-  background-position:center;
+  background-position: center;
   background-repeat: no-repeat;
   transform: translateX(-30px);
 }
 
-.hook{
+.hook {
   width: 20px;
   height: 20px;
 }
 
-.maze{
-
-	display:flex;
-	margin:auto;
-	 max-width: 90vw;
-	 height: auto;
-	
+.maze {
+  display: flex;
+  margin: auto;
+  max-width: 90vw;
+  height: auto;
 }
+
 .fish {
-  display:flex;
+  display: flex;
   width: 30px;
   height: 30px;
-  margin:auto;
-  /*background-image: url('../img/tuna.png');*/
+  margin: auto;
   background-size: cover;
- 
 }
-.preload_fish{
-	width: 30px;
-  height: 30px;
-}
-
-
-
-
-
 
 .path {
-  stroke-dasharray: 3000;      
+  stroke-dasharray: 3000;
   stroke-dashoffset: 3000;
- 
 }
+
 .path.animate {
   animation: draw-line 30s ease forwards;
 }
@@ -87,14 +73,7 @@ body{
   }
 }
 
-
-
-.full-image {
-  margin: 0 !important;
-  padding: 0 !important;
-}
-
-.reel-btn{
+.reel-btn {
   position: fixed;
   left: 20px;
   bottom: 20px;
@@ -105,31 +84,21 @@ body{
   z-index: 999;
 }
 
-.reel-btn img{
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  user-select: none;
-  -webkit-user-drag: none;
-  display: block;
- transition: transform 0.45s ease-out;
-  transform: rotate(0deg);
-}
-
-.reel-btn:hover{
+.reel-btn:hover {
   transform: scale(1.05);
 }
 
-.reel-btn:active{
+.reel-btn:active {
   transform: scale(0.96);
 }
 
-.reel-btn img{
+.reel-btn img {
   width: 100%;
   height: 100%;
   object-fit: contain;
   user-select: none;
   -webkit-user-drag: none;
   display: block;
+  transition: transform 0.45s ease-out;
+  transform: rotate(0deg);
 }
-
