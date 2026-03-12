@@ -28,7 +28,7 @@ let reelTargetY = -2;          // končni Y položaj, ko je riba čisto zgoraj
 let reelStepUp = 30;           // koliko pikslov gre gor na en "poteg"
 let slipChance = 0.10;         // verjetnost, da malo zdrsne nazaj
 let slipAmount = 4;            // koliko zdrsne navzdol
-let stepDuration = 250;        // trajanje enega koraka animacije
+let stepDuration = 150;        // trajanje enega koraka animacije
 
 // Slike tune glede na smer
 const TUNA_DIR = {
