@@ -78,8 +78,8 @@ body {
   position: fixed;
   left: 20px;
   bottom: 20px;
-  width: 190px;
-  height: 190px;
+  width: 120px;
+  height: 120px;
   display: none;
   cursor: pointer;
   z-index: 999;
