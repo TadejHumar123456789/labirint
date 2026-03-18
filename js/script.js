@@ -62,6 +62,15 @@ function setTunaByVector(dx, dy) {
   hook.setAttribute('href', TUNA_DIR[dir]);
 }
 
+// NOVO: pozicioniranje welcome popupa na ~80% višine zaslona
+function positionWelcomePopup(popup) {
+  popup.style.position = 'fixed';
+  popup.style.top = '80vh';
+  popup.style.left = '50%';
+  popup.style.transform = 'translate(-50%, -50%)';
+  popup.style.margin = '0';
+}
+
 const path = [
   [234, 9], [234, 14], [250, 14], [250, 62], [186, 62], [186, 94], [170, 94],
   [170, 110], [154, 110], [154, 94], [138, 94], [138, 126], [122, 126], [122, 142],
@@ -381,6 +390,21 @@ window.addEventListener('load', () => {
         <p>Choose an option to read the instruction or to start the game</p>
       </div>
     `,
+    width: '30vw',
+    background: '#d9d9d9',
+    backdrop: 'rgba(128, 128, 128, 0.75)',
+    didOpen: () => {
+      const popup = Swal.getPopup();
+      if (popup) {
+        popup.style.height = '30vh';
+        popup.style.maxHeight = '30vh';
+        popup.style.maxWidth = '30vw';
+        popup.style.margin = '0';
+        popup.style.padding = '20px';
+        popup.style.boxSizing = 'border-box';
+        popup.style.overflowY = 'auto';
+      }
+    },
     showDenyButton: true,
     confirmButtonText: 'Start',
     denyButtonText: 'Instructions',
