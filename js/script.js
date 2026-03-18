@@ -375,10 +375,10 @@ function showWinPopup() {
 
 window.addEventListener('load', () => {
   Swal.fire({
-    title: 'Welcome',
+    title: 'Welcome to fishing maze',
     html: `
       <div style="line-height:1.5; text-align:center;">
-        <p>Choose an option:</p>
+        <p>Choose an option to read the instruction or to start the game</p>
       </div>
     `,
     showDenyButton: true,
